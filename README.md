@@ -1,20 +1,27 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# বয়স ক্যালকুলেটর (Age Calculator)
 
-# Run and deploy your AI Studio app
+সহজ ও নির্ভুল বয়স ক্যালকুলেটর - নির্মাতা MIRAZ। ছবি সহ প্রোফাইল, টার্গেট বয়স নোটিফিকেশন, PDF রিপোর্ট ও অফলাইন PWA ডাউনলোড।
 
-This contains everything you need to run your app locally.
+🌐 **লাইভ ওয়েবসাইট (Live URL):** [https://mdmiraz-dev.github.io/age-calculator/](https://mdmiraz-dev.github.io/age-calculator/)
 
-View your app in AI Studio: https://ai.studio/apps/feff39c3-8f4a-40ab-88a4-d18f4bbfa1c7
+---
 
-## Run Locally
+## ফিচারসমূহ (Features)
+- 📅 **নিখুঁত বয়স হিসাব:** বছর, মাস, দিন, ঘণ্টা, মিনিট ও সেকেন্ড সহ রিয়েল-টাইম হিসাব।
+- 🎂 **পরবর্তী জন্মদিন কাউন্টডাউন:** পরবর্তী জন্মদিন কোন বারে এবং কত দিন বাকি।
+- 💼 **চাকরির বয়স ক্যালকুলেটর (Job Age Checker):** সরকারি ও বিসিএস পরীক্ষার জন্য নির্ধারিত তারিখে বয়স যোগ্যতা যাচাই।
+- 🏆 **জীবন মাইলস্টোন ট্র্যাকার:** ১০,০০০ দিন, ১ বিলিয়ন সেকেন্ড ইত্যাদি ঐতিহাসিক মাইলফলক।
+- 📄 **PDF রিপোর্ট ডাউনলোড:** সুন্দর ফরম্যাটে নিজের বা পরিবারের সদস্যদের বয়সের তথ্য সেভ ও প্রিন্ট।
+- 📱 **অফলাইন PWA সুবিধা:** ফোনের অ্যাপের মতো ইনস্টল করে ইন্টারনেট ছাড়াই চালানোর সুবিধা।
 
-**Prerequisites:**  Node.js
+---
 
+## লোকাল ডেভেলপমেন্ট (Local Setup)
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+# ১. ডিপেন্ডেন্সি ইনস্টল করুন
+npm install
+
+# ২. লোকাল সার্ভার চালু করুন
+npm run dev
+```
