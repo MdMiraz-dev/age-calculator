@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, FileText, CheckCircle2, ShieldCheck, User, Calendar, Gift, Hourglass, Award, MapPin, Navigation, Loader2, Printer, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { Download, X, FileText, CheckCircle2, User, MapPin, Navigation, Loader2, Printer, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { CalculationResult, Language, UserProfile } from '../types';
 import { toBnNum, formatNum } from '../utils/ageCalculator';
 import { formatFullDate } from '../utils/dateFormatter';
-import { exportElementToPdf, exportElementToImage, printElementViaIframe } from '../utils/pdfGenerator';
+import { downloadCertificatePdf, downloadCertificateImage, printCertificateDirectly } from '../utils/pdfGenerator';
 
 interface PdfExportModalProps {
   isOpen: boolean;
@@ -36,59 +36,29 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [downloadLink, setDownloadLink] = useState<{ url: string; name: string } | null>(null);
 
-  const handlePrint = () => {
-    printElementViaIframe('printable-age-certificate');
-  };
-
-  useEffect(() => {
-    if (activeProfile?.name && !userName) {
-      setUserName(activeProfile.name);
-    }
-    if (location) {
-      setPdfLocation(location);
-    } else if (activeProfile?.location) {
-      setPdfLocation(activeProfile.location);
-    }
-  }, [activeProfile, location]);
-
-  if (!isOpen) return null;
-
-  const handleGpsDetectForPdf = () => {
-    if (!navigator.geolocation) return;
-    setIsDetectingGps(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&zoom=10`,
-            { headers: { 'Accept-Language': lang === 'bn' ? 'bn,en' : 'en' } }
-          );
-          if (res.ok) {
-            const data = await res.json();
-            const addr = data.address || {};
-            const city = addr.city || addr.town || addr.state_district || addr.state || '';
-            const country = addr.country || '';
-            const detected = city && country ? `${city}, ${country}` : data.display_name?.split(',').slice(0, 2).join(',') || 'ঢাকা, বাংলাদেশ';
-            setPdfLocation(detected);
-          } else {
-            setPdfLocation('ঢাকা, বাংলাদেশ');
-          }
-        } catch {
-          setPdfLocation('ঢাকা, বাংলাদেশ');
-        } finally {
-          setIsDetectingGps(false);
-        }
-      },
-      () => {
-        setIsDetectingGps(false);
-      }
-    );
-  };
-
   const formattedBirth = formatFullDate(birthDateStr, lang, true);
   const formattedTarget = formatFullDate(targetDateStr, lang, true);
   const formattedNextBday = formatFullDate(result.nextBirthday.targetDate, lang, true);
-  const generationTimestamp = new Date().toLocaleString(lang === 'bn' ? 'bn-BD' : 'en-US');
+
+  const getCertificateData = () => ({
+    userName,
+    pdfLocation,
+    formattedBirth,
+    formattedTarget,
+    formattedNextBday,
+    result,
+    activeProfile,
+    lang,
+  });
+
+  const handlePrint = async () => {
+    try {
+      const data = getCertificateData();
+      await printCertificateDirectly(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const handleDownloadPdf = async () => {
     setIsGenerating(true);
@@ -96,25 +66,22 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
     setErrorMsg(null);
     setDownloadLink(null);
 
-    // Allow DOM to settle before snapshot
-    await new Promise((r) => setTimeout(r, 150));
-
-    const cleanName = userName.trim() ? userName.trim().replace(/\s+/g, '_') : 'My';
-    const fileName = `${cleanName}_Age_Certificate_Report.pdf`;
-
-    const res = await exportElementToPdf('printable-age-certificate', fileName);
+    const data = getCertificateData();
+    const res = await downloadCertificatePdf(data);
     setIsGenerating(false);
 
     if (res.success) {
       setSuccess(true);
       if (res.blobUrl) {
-        setDownloadLink({ url: res.blobUrl, name: fileName });
+        const cleanName = userName.trim() ? userName.trim().replace(/\s+/g, '_') : 'My';
+        setDownloadLink({ url: res.blobUrl, name: `${cleanName}_Age_Certificate.pdf` });
       }
     } else {
       setErrorMsg(
-        lang === 'bn'
-          ? 'স্বয়ংক্রিয় ডাউনলোডে সমস্যা হলে পাশে থাকা "প্রিন্ট / সেভ" বা "ছবি (PNG)" অপশনটি ব্যবহার করুন।'
-          : 'Could not auto-download. Please click "Print / Save" or "Image (PNG)".'
+        res.error ||
+          (lang === 'bn'
+            ? 'স্বয়ংক্রিয় ডাউনলোডে সমস্যা হলে পাশে থাকা "প্রিন্ট / সেভ" বা "ছবি (PNG)" অপশনটি ব্যবহার করুন।'
+            : 'Could not auto-download. Please click "Print / Save" or "Image (PNG)".')
       );
     }
   };
@@ -125,18 +92,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
     setErrorMsg(null);
     setDownloadLink(null);
 
-    await new Promise((r) => setTimeout(r, 150));
-
-    const cleanName = userName.trim() ? userName.trim().replace(/\s+/g, '_') : 'My';
-    const fileName = `${cleanName}_Age_Certificate.png`;
-
-    const res = await exportElementToImage('printable-age-certificate', fileName);
+    const data = getCertificateData();
+    const res = await downloadCertificateImage(data);
     setIsGeneratingImage(false);
 
     if (res.success) {
       setImageSuccess(true);
       if (res.blobUrl) {
-        setDownloadLink({ url: res.blobUrl, name: fileName });
+        const cleanName = userName.trim() ? userName.trim().replace(/\s+/g, '_') : 'My';
+        setDownloadLink({ url: res.blobUrl, name: `${cleanName}_Age_Certificate.png` });
       }
     } else {
       setErrorMsg(
@@ -335,282 +299,6 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               </>
             )}
           </button>
-        </div>
-      </div>
-
-      {/* Hidden high-res Printable DOM Template optimized for PDF snapshot and printing */}
-      <div
-        id="printable-container"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '794px',
-          zIndex: -9999,
-          opacity: 1,
-          pointerEvents: 'none',
-        }}
-      >
-        <div
-          id="printable-age-certificate"
-          className="w-[794px] min-h-[1123px] bg-white text-neutral-900 p-10 font-sans border-[12px] border-neutral-900 relative"
-          style={{ boxSizing: 'border-box', backgroundColor: '#ffffff', color: '#171717', borderColor: '#171717' }}
-        >
-          {/* Inner ornamental border */}
-          <div className="border border-neutral-400 p-8 h-full flex flex-col justify-between">
-            {/* Header / Brand */}
-            <div className="text-center space-y-2 border-b-2 border-neutral-900 pb-5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 text-neutral-700 text-xs font-bold uppercase tracking-widest">
-                <ShieldCheck className="w-4 h-4 text-neutral-900" />
-                <span>{lang === 'bn' ? 'অফিসিয়াল বয়স সনদ ও রিপোর্ট' : 'Official Age Certificate & Report'}</span>
-              </div>
-              <h1 className="text-3xl font-extrabold text-neutral-950 tracking-tight">
-                {lang === 'bn' ? 'বয়স ক্যালকুলেটর সনদ' : 'Age Certificate'}
-              </h1>
-              <p className="text-xs text-neutral-500">
-                {lang === 'bn'
-                  ? `সনদ প্রস্তুতের তারিখ: ${generationTimestamp}`
-                  : `Generated on: ${generationTimestamp}`}
-              </p>
-            </div>
-
-            {/* Person Info with Passport Photo Box */}
-            <div className="my-5 p-4 bg-neutral-50 border border-neutral-200 rounded-xl flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                {activeProfile?.photoUrl ? (
-                  <div className="w-16 h-20 border-2 border-neutral-900 rounded-md overflow-hidden bg-white shadow-xs shrink-0">
-                    <img
-                      src={activeProfile.photoUrl}
-                      alt="Candidate photo"
-                      className="w-full h-full object-cover"
-                      crossOrigin="anonymous"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-16 h-20 border-2 border-dashed border-neutral-400 rounded-md bg-neutral-100 flex flex-col items-center justify-center text-[9px] text-neutral-500 shrink-0 text-center p-1">
-                    <User className="w-6 h-6 mb-1 text-neutral-400" />
-                    <span>{lang === 'bn' ? 'ফটো সংযুক্ত' : 'Photo'}</span>
-                  </div>
-                )}
-                <div>
-                  <span className="text-[11px] font-medium text-neutral-500 block uppercase">
-                    {lang === 'bn' ? 'নাম / ব্যবহারকারী' : 'Candidate / Name'}
-                  </span>
-                  <span className="text-xl font-bold text-neutral-900">
-                    {userName.trim() ? userName : lang === 'bn' ? 'হিসাবকারী' : 'User'}
-                  </span>
-                  {activeProfile?.email && (
-                    <span className="text-xs text-neutral-500 block mt-0.5">
-                      {activeProfile.email}
-                    </span>
-                  )}
-                  {pdfLocation && (
-                    <div className="flex items-center gap-1 text-xs text-rose-700 font-bold mt-1 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md inline-flex">
-                      <MapPin className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                      <span>{lang === 'bn' ? 'স্থান: ' : 'Location: '} {pdfLocation}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="text-right">
-                <span className="text-[11px] font-medium text-neutral-500 block uppercase">
-                  {lang === 'bn' ? 'জন্মবার' : 'Born on'}
-                </span>
-                <span className="text-base font-bold text-neutral-900">
-                  {lang === 'bn' ? result.dayOfWeekBornBn : result.dayOfWeekBornEn}
-                </span>
-              </div>
-            </div>
-
-            {/* Date Details Table */}
-            <div className="space-y-3">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-500 border-b pb-1">
-                {lang === 'bn' ? 'তারিখ ও সনদের বিস্তারিত বিবরণ' : 'Date & Certificate Details'}
-              </h2>
-              <div className="grid grid-cols-4 gap-2.5 text-xs">
-                <div className="p-2.5 bg-neutral-50 rounded-lg border border-neutral-200">
-                  <span className="text-[11px] text-neutral-500 block">
-                    {lang === 'bn' ? 'জন্ম তারিখ:' : 'Date of Birth:'}
-                  </span>
-                  <span className="font-bold text-neutral-900 text-xs block mt-0.5">{formattedBirth}</span>
-                </div>
-                <div className="p-2.5 bg-neutral-50 rounded-lg border border-neutral-200">
-                  <span className="text-[11px] text-neutral-500 block">
-                    {lang === 'bn' ? 'হিসাবের তারিখ:' : 'Calculation Date:'}
-                  </span>
-                  <span className="font-bold text-neutral-900 text-xs block mt-0.5">{formattedTarget}</span>
-                </div>
-                <div className="p-2.5 bg-neutral-50 rounded-lg border border-neutral-200">
-                  <span className="text-[11px] text-neutral-500 block">
-                    {lang === 'bn' ? 'স্থান / লোকেশন:' : 'Report Location:'}
-                  </span>
-                  <span className="font-bold text-neutral-900 text-xs block mt-0.5 truncate" title={pdfLocation}>
-                    {pdfLocation || (lang === 'bn' ? 'ঢাকা, বাংলাদেশ' : 'Dhaka, Bangladesh')}
-                  </span>
-                </div>
-                <div className="p-2.5 bg-neutral-50 rounded-lg border border-neutral-200">
-                  <span className="text-[11px] text-neutral-500 block">
-                    {lang === 'bn' ? 'সনদ ট্র্যাকিং নং:' : 'Certificate ID:'}
-                  </span>
-                  <span className="font-mono font-bold text-indigo-700 text-xs block mt-0.5">
-                    BD-AGE-{Math.abs((result.totalSeconds % 899999) + 100000)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Exact Age Hero */}
-            <div className="my-5 p-6 bg-neutral-900 text-white rounded-xl text-center space-y-3">
-              <span className="text-xs font-bold uppercase tracking-widest text-neutral-400">
-                {lang === 'bn' ? 'নির্ধারিত তারিখে সঠিক বয়স' : 'Exact Age On Calculation Date'}
-              </span>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-neutral-800 p-3 rounded-lg">
-                  <div className="text-4xl font-extrabold">
-                    {lang === 'bn' ? toBnNum(result.years) : result.years}
-                  </div>
-                  <div className="text-xs font-medium text-neutral-300 mt-1">
-                    {lang === 'bn' ? 'বছর (Years)' : 'Years'}
-                  </div>
-                </div>
-                <div className="bg-neutral-800 p-3 rounded-lg">
-                  <div className="text-4xl font-extrabold">
-                    {lang === 'bn' ? toBnNum(result.months) : result.months}
-                  </div>
-                  <div className="text-xs font-medium text-neutral-300 mt-1">
-                    {lang === 'bn' ? 'মাস (Months)' : 'Months'}
-                  </div>
-                </div>
-                <div className="bg-neutral-800 p-3 rounded-lg">
-                  <div className="text-4xl font-extrabold">
-                    {lang === 'bn' ? toBnNum(result.days) : result.days}
-                  </div>
-                  <div className="text-xs font-medium text-neutral-300 mt-1">
-                    {lang === 'bn' ? 'দিন (Days)' : 'Days'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Next Birthday Details */}
-            <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between text-xs text-amber-950">
-              <div>
-                <span className="font-bold block text-sm">
-                  {lang === 'bn' ? 'পরবর্তী জন্মদিন (Next Birthday):' : 'Next Birthday:'}
-                </span>
-                <span className="mt-0.5 block">{formattedNextBday}</span>
-              </div>
-              <div className="text-right font-bold text-sm bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-300">
-                {lang === 'bn'
-                  ? `আর ${toBnNum(result.nextBirthday.daysRemaining)} দিন বাকি`
-                  : `${result.nextBirthday.daysRemaining} days left`}
-              </div>
-            </div>
-
-            {/* Complete Lifetime Stats Grid */}
-            <div className="space-y-2 mt-4">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-500 border-b pb-1">
-                {lang === 'bn' ? 'জীবনের মোট পরিসংখ্যান (Lifetime Units)' : 'Lifetime Units'}
-              </h2>
-              <div className="grid grid-cols-3 gap-2.5 text-xs text-neutral-800">
-                <div className="p-2.5 bg-neutral-50 border rounded-lg">
-                  <span className="text-neutral-500 block">{lang === 'bn' ? 'মোট মাস:' : 'Total Months:'}</span>
-                  <span className="font-bold text-sm">{formatNum(result.totalMonths, lang)}</span>
-                </div>
-                <div className="p-2.5 bg-neutral-50 border rounded-lg">
-                  <span className="text-neutral-500 block">{lang === 'bn' ? 'মোট সপ্তাহ:' : 'Total Weeks:'}</span>
-                  <span className="font-bold text-sm">{formatNum(result.totalWeeks, lang)}</span>
-                </div>
-                <div className="p-2.5 bg-neutral-50 border rounded-lg">
-                  <span className="text-neutral-500 block">{lang === 'bn' ? 'মোট দিন:' : 'Total Days:'}</span>
-                  <span className="font-bold text-sm">{formatNum(result.totalDays, lang)}</span>
-                </div>
-                <div className="p-2.5 bg-neutral-50 border rounded-lg">
-                  <span className="text-neutral-500 block">{lang === 'bn' ? 'মোট ঘণ্টা:' : 'Total Hours:'}</span>
-                  <span className="font-bold text-sm">{formatNum(result.totalHours, lang)}</span>
-                </div>
-                <div className="p-2.5 bg-neutral-50 border rounded-lg">
-                  <span className="text-neutral-500 block">{lang === 'bn' ? 'মোট মিনিট:' : 'Total Minutes:'}</span>
-                  <span className="font-bold text-sm">{formatNum(result.totalMinutes, lang)}</span>
-                </div>
-                <div className="p-2.5 bg-neutral-50 border rounded-lg">
-                  <span className="text-neutral-500 block">{lang === 'bn' ? 'মোট সেকেন্ড:' : 'Total Seconds:'}</span>
-                  <span className="font-bold text-sm font-mono">{formatNum(result.totalSeconds, lang)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Zodiac and Job Status */}
-            <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
-              <div className="p-3 bg-neutral-50 border rounded-xl">
-                <span className="font-bold block text-neutral-700 mb-1">
-                  {lang === 'bn' ? 'রাশিফল (Zodiac):' : 'Zodiac & Astrological Sign:'}
-                </span>
-                <p className="text-neutral-600">
-                  {lang === 'bn' ? 'পাশ্চাত্য রাশি: ' : 'Western Zodiac: '}
-                  <span className="font-bold text-neutral-900">
-                    {lang === 'bn' ? result.zodiacSign.bn : result.zodiacSign.en} ({result.zodiacSign.symbol})
-                  </span>
-                </p>
-                <p className="text-neutral-600 mt-0.5">
-                  {lang === 'bn' ? 'চাইনিজ রাশি: ' : 'Chinese Zodiac: '}
-                  <span className="font-bold text-neutral-900">
-                    {lang === 'bn' ? result.chineseZodiac.bn : result.chineseZodiac.en} ({result.chineseZodiac.symbol})
-                  </span>
-                </p>
-              </div>
-
-              <div className="p-3 bg-neutral-50 border rounded-xl">
-                <span className="font-bold block text-neutral-700 mb-1">
-                  {lang === 'bn' ? 'সরকারি চাকরির বয়স যোগ্যতা:' : 'Job Eligibility (Age Limits):'}
-                </span>
-                <p className="text-neutral-600">
-                  {lang === 'bn' ? '৩০ বছর সীমা: ' : '30 Years Limit: '}
-                  <span className={`font-bold ${result.years < 30 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                    {result.years < 30
-                      ? lang === 'bn' ? 'যোগ্য' : 'Eligible'
-                      : lang === 'bn' ? 'অতিক্রম করেছে' : 'Exceeded'}
-                  </span>
-                </p>
-                <p className="text-neutral-600 mt-0.5">
-                  {lang === 'bn' ? '৩২ বছর সীমা: ' : '32 Years Limit: '}
-                  <span className={`font-bold ${result.years < 32 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                    {result.years < 32
-                      ? lang === 'bn' ? 'যোগ্য' : 'Eligible'
-                      : lang === 'bn' ? 'অতিক্রম করেছে' : 'Exceeded'}
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            {/* Footer Seal & Builder Signature */}
-            <div className="mt-6 pt-4 border-t-2 border-neutral-900 flex items-center justify-between text-[11px] text-neutral-600">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-                <div>
-                  <span className="font-bold text-neutral-900 block">
-                    {lang === 'bn' ? 'স্বয়ংক্রিয়ভাবে নির্ভুল গণনাকৃত ও সত্যায়িত' : 'System Verified & Computed'}
-                  </span>
-                  <span className="text-[10px] text-neutral-500">
-                    {lang === 'bn' ? `যাচাইকৃত অবস্থান: ${pdfLocation} • সরকারি ও পেশাদার ব্যবহারের উপযোগী` : `Verified Location: ${pdfLocation} • Official Age Verification`}
-                  </span>
-                </div>
-              </div>
-
-              {/* MIRAZ Official Builder Signature Stamp */}
-              <div className="text-right">
-                <div className="border border-neutral-800 rounded-lg px-3 py-1.5 bg-neutral-50 inline-block text-left">
-                  <p className="font-black text-neutral-900 text-xs tracking-wide">
-                    {lang === 'bn' ? 'নির্মাতা ও ডেভেলপার: MIRAZ' : 'Software Creator: MIRAZ'}
-                  </p>
-                  <p className="text-[10px] text-indigo-700 font-semibold">
-                    Age Calculator Official Service • Verified
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

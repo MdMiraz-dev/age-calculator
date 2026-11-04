@@ -1,77 +1,78 @@
-import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { generateCertificateCanvas, CertificateData } from './canvasCertificate';
 
-export async function exportElementToPdf(
-  elementId: string,
-  fileName: string = 'Age_Certificate_Report.pdf'
+export async function downloadCertificatePdf(
+  data: CertificateData
 ): Promise<{ success: boolean; blobUrl?: string; error?: string }> {
-  const element = document.getElementById(elementId);
-  if (!element) {
-    return { success: false, error: 'Element not found' };
-  }
-
   try {
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      onclone: (clonedDoc, clonedElement) => {
-        const container = clonedDoc.getElementById('printable-container');
-        if (container) {
-          container.style.position = 'static';
-          container.style.zIndex = '9999';
-          container.style.opacity = '1';
-          container.style.display = 'block';
-        }
+    const canvas = await generateCertificateCanvas(data);
+    const imgData = canvas.toDataURL('image/jpeg', 0.96);
 
-        if (clonedElement) {
-          clonedElement.style.display = 'block';
-          clonedElement.style.opacity = '1';
-        }
-
-        const styleElements = clonedDoc.querySelectorAll('style');
-        styleElements.forEach((style) => {
-          if (style.textContent && (style.textContent.includes('oklch') || style.textContent.includes('color-mix'))) {
-            style.textContent = style.textContent
-              .replace(/oklch\([^)]+\)/g, '#262626')
-              .replace(/color-mix\([^)]+\)/g, '#f5f5f5');
-          }
-        });
-      },
-    });
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
     });
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const pdfWidth = pdf.internal.pageSize.getWidth(); // 210
+    const pdfHeight = pdf.internal.pageSize.getHeight(); // 297
 
-    const imgProps = pdf.getImageProperties(imgData);
-    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
-    let heightLeft = imgHeight;
-    let position = 0;
-
-    pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-    heightLeft -= pdfHeight;
-
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-      heightLeft -= pdfHeight;
-    }
+    const cleanName = data.userName?.trim() ? data.userName.trim().replace(/\s+/g, '_') : 'My';
+    const fileName = `${cleanName}_Age_Certificate.pdf`;
 
     const blob = pdf.output('blob');
     const blobUrl = URL.createObjectURL(blob);
 
+    // 1. Direct Anchor download
     const link = document.createElement('a');
     link.href = blobUrl;
+    link.download = fileName;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+
+    // 2. jsPDF save
+    try {
+      pdf.save(fileName);
+    } catch {
+      // fallback handled by anchor
+    }
+
+    // 3. Mobile popup fallback
+    const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isMobile) {
+      setTimeout(() => {
+        window.open(blobUrl, '_blank');
+      }, 400);
+    }
+
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+    }, 2000);
+
+    return { success: true, blobUrl };
+  } catch (err: any) {
+    console.error('PDF error:', err);
+    return { success: false, error: err?.message || 'PDF Generation failed' };
+  }
+}
+
+export async function downloadCertificateImage(
+  data: CertificateData
+): Promise<{ success: boolean; blobUrl?: string }> {
+  try {
+    const canvas = await generateCertificateCanvas(data);
+    const dataUrl = canvas.toDataURL('image/png');
+    const cleanName = data.userName?.trim() ? data.userName.trim().replace(/\s+/g, '_') : 'My';
+    const fileName = `${cleanName}_Age_Certificate.png`;
+
+    const link = document.createElement('a');
+    link.href = dataUrl;
     link.download = fileName;
     link.target = '_blank';
     link.rel = 'noopener';
@@ -82,63 +83,7 @@ export async function exportElementToPdf(
       if (document.body.contains(link)) {
         document.body.removeChild(link);
       }
-    }, 1000);
-
-    return { success: true, blobUrl };
-  } catch (err: any) {
-    console.error('Error generating PDF:', err);
-    return { success: false, error: err?.message || 'Generation failed' };
-  }
-}
-
-export async function exportElementToImage(
-  elementId: string,
-  fileName: string = 'Age_Certificate.png'
-): Promise<{ success: boolean; blobUrl?: string }> {
-  const element = document.getElementById(elementId);
-  if (!element) return { success: false };
-
-  try {
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      onclone: (clonedDoc, clonedElement) => {
-        const container = clonedDoc.getElementById('printable-container');
-        if (container) {
-          container.style.position = 'static';
-          container.style.zIndex = '9999';
-          container.style.opacity = '1';
-          container.style.display = 'block';
-        }
-        if (clonedElement) {
-          clonedElement.style.display = 'block';
-          clonedElement.style.opacity = '1';
-        }
-        const styleElements = clonedDoc.querySelectorAll('style');
-        styleElements.forEach((style) => {
-          if (style.textContent && (style.textContent.includes('oklch') || style.textContent.includes('color-mix'))) {
-            style.textContent = style.textContent
-              .replace(/oklch\([^)]+\)/g, '#262626')
-              .replace(/color-mix\([^)]+\)/g, '#f5f5f5');
-          }
-        });
-      },
-    });
-
-    const dataUrl = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-
-    setTimeout(() => {
-      if (document.body.contains(link)) {
-        document.body.removeChild(link);
-      }
-    }, 1000);
+    }, 2000);
 
     return { success: true, blobUrl: dataUrl };
   } catch (err) {
@@ -147,60 +92,39 @@ export async function exportElementToImage(
   }
 }
 
-export function printElementViaIframe(elementId: string) {
-  const el = document.getElementById(elementId);
-  if (!el) return;
+export async function printCertificateDirectly(data: CertificateData) {
+  const canvas = await generateCertificateCanvas(data);
+  const dataUrl = canvas.toDataURL('image/png');
 
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = '0';
-  document.body.appendChild(iframe);
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    window.print();
+    return;
+  }
 
-  const doc = iframe.contentWindow?.document;
-  if (!doc) return;
-
-  doc.open();
-  doc.write(`
+  printWindow.document.write(`
     <!DOCTYPE html>
     <html lang="bn">
       <head>
         <title>বয়স ক্যালকুলেটর সনদ</title>
         <meta charset="utf-8" />
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
         <style>
-          @page { size: A4 portrait; margin: 8mm; }
-          * { box-sizing: border-box; }
-          body { 
-            margin: 0; 
-            padding: 0; 
-            font-family: 'Hind Siliguri', -apple-system, sans-serif;
-            background: #ffffff;
-            color: #171717;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
+          @page { size: A4 portrait; margin: 0; }
+          body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: #ffffff; }
+          img { width: 100vw; height: auto; max-height: 100vh; object-fit: contain; }
         </style>
       </head>
       <body>
-        ${el.outerHTML}
+        <img src="${dataUrl}" />
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+        </script>
       </body>
     </html>
   `);
-  doc.close();
-
-  iframe.contentWindow?.focus();
-  setTimeout(() => {
-    iframe.contentWindow?.print();
-    setTimeout(() => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
-      }
-    }, 4000);
-  }, 400);
+  printWindow.document.close();
 }
