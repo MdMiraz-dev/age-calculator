@@ -39,7 +39,7 @@ export function usePWAInstall() {
 
     // Register service worker if available
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch((err) => {
+      navigator.serviceWorker.register('./sw.js').catch((err) => {
         console.warn('SW registration skipped:', err);
       });
     }

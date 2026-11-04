@@ -1,13 +1,13 @@
-const CACHE_NAME = 'agecalc-miraz-v2';
+const CACHE_NAME = 'agecalc-miraz-v3';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/icon.svg',
-  '/pwa-192x192.png',
-  '/pwa-512x512.png',
-  '/maskable-icon-512x512.png',
-  '/apple-touch-icon.png'
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './icon.svg',
+  './pwa-192x192.png',
+  './pwa-512x512.png',
+  './maskable-icon-512x512.png',
+  './apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -67,8 +67,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'বয়স ক্যালকুলেটর রিমাইন্ডার';
   const options = {
     body: data.body || 'আপনার টার্গেট বয়স সম্পন্ন হয়েছে!',
-    icon: '/pwa-192x192.png',
-    badge: '/icon.svg',
+    icon: './pwa-192x192.png',
+    badge: './icon.svg',
     vibrate: [200, 100, 200]
   };
   event.waitUntil(self.registration.showNotification(title, options));
@@ -84,7 +84,7 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
       if (self.clients.openWindow) {
-        return self.clients.openWindow('/');
+        return self.clients.openWindow('./');
       }
     })
   );
