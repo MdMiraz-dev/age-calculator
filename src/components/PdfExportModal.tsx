@@ -108,6 +108,10 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         const cleanName = userName.trim() ? userName.trim().replace(/\s+/g, '_') : 'My';
         setDownloadLink({ url: res.blobUrl, name: `${cleanName}_Age_Certificate.pdf` });
       }
+      setTimeout(() => {
+        onClose();
+        setSuccess(false);
+      }, 2500);
     } else {
       setErrorMsg(
         res.error ||
@@ -143,9 +147,29 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-neutral-950/70 backdrop-blur-xs overflow-y-auto animate-fadeIn">
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl max-w-lg w-full p-4 sm:p-5 shadow-2xl border border-neutral-200 dark:border-neutral-800 space-y-4 my-auto">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-neutral-950/70 backdrop-blur-xs overflow-y-auto animate-fadeIn cursor-pointer"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="cursor-default bg-white dark:bg-neutral-900 rounded-2xl max-w-lg w-full p-4 sm:p-5 shadow-2xl border border-neutral-200 dark:border-neutral-800 space-y-4 my-auto"
+      >
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
           <div className="flex items-center gap-2">
@@ -273,9 +297,9 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-2 text-xs font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+            className="px-4 py-2 text-xs font-bold rounded-xl bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 transition-colors"
           >
-            {lang === 'bn' ? 'বাতিল' : 'Cancel'}
+            {success ? (lang === 'bn' ? 'সম্পন্ন / বন্ধ করুন ✕' : 'Done / Close ✕') : (lang === 'bn' ? 'বন্ধ করুন ✕' : 'Close ✕')}
           </button>
 
           {/* Native Print / Save */}
