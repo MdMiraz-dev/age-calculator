@@ -9,3 +9,21 @@
   }
 }
 
+@media print {
+  body > * {
+    visibility: hidden !important;
+  }
+  #printable-container,
+  #printable-container * {
+    visibility: visible !important;
+  }
+  #printable-container {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    opacity: 1 !important;
+    z-index: 999999 !important;
+    display: block !important;
+  }
+}

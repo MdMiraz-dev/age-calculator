@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, FileText, CheckCircle2, ShieldCheck, User, Calendar, Gift, Hourglass, Award, MapPin, Navigation, Loader2 } from 'lucide-react';
+import { Download, X, FileText, CheckCircle2, ShieldCheck, User, Calendar, Gift, Hourglass, Award, MapPin, Navigation, Loader2, Printer, AlertCircle } from 'lucide-react';
 import { CalculationResult, Language, UserProfile } from '../types';
 import { toBnNum, formatNum } from '../utils/ageCalculator';
 import { formatFullDate } from '../utils/dateFormatter';
@@ -31,6 +31,11 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   const [isDetectingGps, setIsDetectingGps] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   useEffect(() => {
     if (activeProfile?.name && !userName) {
@@ -85,9 +90,10 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   const handleDownloadPdf = async () => {
     setIsGenerating(true);
     setSuccess(false);
+    setErrorMsg(null);
 
     // Allow DOM to settle before snapshot
-    await new Promise((r) => setTimeout(r, 150));
+    await new Promise((r) => setTimeout(r, 200));
 
     const cleanName = userName.trim() ? userName.trim().replace(/\s+/g, '_') : 'My';
     const fileName = `${cleanName}_Age_Certificate_Report.pdf`;
@@ -100,7 +106,13 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
       setTimeout(() => {
         setSuccess(false);
         onClose();
-      }, 2000);
+      }, 2500);
+    } else {
+      setErrorMsg(
+        lang === 'bn'
+          ? 'ফাইল সরাসরি সেভ করা যায়নি। পাশে থাকা "প্রিন্ট / সেভ" বাটনে চাপ দিয়ে PDF হিসেবে সেভ করুন।'
+          : 'Could not auto-download. Please click "Print / Save" to save as PDF.'
+      );
     }
   };
 
@@ -205,14 +217,32 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
           </div>
         </div>
 
+        {/* Error message if any */}
+        {errorMsg && (
+          <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
         {/* Download Action Buttons */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
           <button
             type="button"
             onClick={onClose}
             className="px-3 py-2 text-xs font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
           >
             {lang === 'bn' ? 'বাতিল' : 'Cancel'}
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700 rounded-xl text-xs font-bold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all shadow-xs"
+            title={lang === 'bn' ? 'সরাসরি ব্রাউজার/ফোনের প্রিন্ট থেকে PDF সেভ করুন' : 'Print or Save as PDF via native print'}
+          >
+            <Printer className="w-4 h-4 text-neutral-600 dark:text-neutral-300" />
+            <span>{lang === 'bn' ? 'প্রিন্ট / সেভ' : 'Print / Save'}</span>
           </button>
 
           <button
@@ -241,8 +271,19 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         </div>
       </div>
 
-      {/* Hidden high-res Printable DOM Template optimized for PDF snapshot */}
-      <div className="absolute -left-[9999px] top-0">
+      {/* Hidden high-res Printable DOM Template optimized for PDF snapshot and printing */}
+      <div
+        id="printable-container"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '794px',
+          zIndex: -100,
+          opacity: 0,
+          pointerEvents: 'none',
+        }}
+      >
         <div
           id="printable-age-certificate"
           className="w-[794px] min-h-[1123px] bg-white text-neutral-900 p-10 font-sans border-[12px] border-neutral-900 relative"
