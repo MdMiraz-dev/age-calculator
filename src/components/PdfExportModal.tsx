@@ -36,6 +36,38 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [downloadLink, setDownloadLink] = useState<{ url: string; name: string } | null>(null);
 
+  const handleGpsDetectForPdf = () => {
+    if (!navigator.geolocation) return;
+    setIsDetectingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&zoom=10`,
+            { headers: { 'Accept-Language': lang === 'bn' ? 'bn,en' : 'en' } }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const addr = data.address || {};
+            const city = addr.city || addr.town || addr.state_district || addr.state || '';
+            const country = addr.country || '';
+            const detected = city && country ? `${city}, ${country}` : data.display_name?.split(',').slice(0, 2).join(',') || 'ঢাকা, বাংলাদেশ';
+            setPdfLocation(detected);
+          } else {
+            setPdfLocation('ঢাকা, বাংলাদেশ');
+          }
+        } catch {
+          setPdfLocation('ঢাকা, বাংলাদেশ');
+        } finally {
+          setIsDetectingGps(false);
+        }
+      },
+      () => {
+        setIsDetectingGps(false);
+      }
+    );
+  };
+
   const formattedBirth = formatFullDate(birthDateStr, lang, true);
   const formattedTarget = formatFullDate(targetDateStr, lang, true);
   const formattedNextBday = formatFullDate(result.nextBirthday.targetDate, lang, true);

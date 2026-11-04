@@ -86,7 +86,7 @@ export async function generateCertificateCanvas(data: CertificateData): Promise<
   ctx.fillRect(20, 20, cornerSize, cornerSize);
   ctx.fillRect(width - 20 - cornerSize, 20, cornerSize, cornerSize);
   ctx.fillRect(20, height - 20 - cornerSize, cornerSize, cornerSize);
-  ctx.fillRect(width - 20 - cornerSize, height - 20 - cornerSize, cornerSize);
+  ctx.fillRect(width - 20 - cornerSize, height - 20 - cornerSize, cornerSize, cornerSize);
 
   let curY = 60;
 

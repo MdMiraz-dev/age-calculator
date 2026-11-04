@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agecalc-miraz-v6';
+const CACHE_NAME = 'agecalc-miraz-v7';
 const ASSETS = [
   './',
   './index.html',
