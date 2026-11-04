@@ -4,27 +4,22 @@ import { jsPDF } from 'jspdf';
 export async function exportElementToPdf(
   elementId: string,
   fileName: string = 'Age_Certificate_Report.pdf'
-): Promise<boolean> {
+): Promise<{ success: boolean; blobUrl?: string; error?: string }> {
   const element = document.getElementById(elementId);
   if (!element) {
-    console.error(`Element with id ${elementId} not found.`);
-    return false;
+    return { success: false, error: 'Element not found' };
   }
 
   try {
-    // Render the DOM element with high scale for crystal-sharp print quality
     const canvas = await html2canvas(element, {
-      scale: 2, // 2x scale for crispness
+      scale: 2,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: 1024,
       onclone: (clonedDoc, clonedElement) => {
-        // Fix cloned container position so html2canvas renders it in view
         const container = clonedDoc.getElementById('printable-container');
         if (container) {
           container.style.position = 'static';
-          container.style.transform = 'none';
           container.style.zIndex = '9999';
           container.style.opacity = '1';
           container.style.display = 'block';
@@ -32,33 +27,15 @@ export async function exportElementToPdf(
 
         if (clonedElement) {
           clonedElement.style.display = 'block';
-          clonedElement.style.visibility = 'visible';
           clonedElement.style.opacity = '1';
         }
 
-        // Sanitize Tailwind v4 oklch colors in all cloned style tags
         const styleElements = clonedDoc.querySelectorAll('style');
         styleElements.forEach((style) => {
           if (style.textContent && (style.textContent.includes('oklch') || style.textContent.includes('color-mix'))) {
             style.textContent = style.textContent
               .replace(/oklch\([^)]+\)/g, '#262626')
               .replace(/color-mix\([^)]+\)/g, '#f5f5f5');
-          }
-        });
-
-        // Ensure all elements inside have safe fallback colors
-        const elements = clonedElement.querySelectorAll('*');
-        elements.forEach((el: any) => {
-          if (el.style) {
-            if (el.style.color && el.style.color.includes('oklch')) {
-              el.style.color = '#171717';
-            }
-            if (el.style.backgroundColor && el.style.backgroundColor.includes('oklch')) {
-              el.style.backgroundColor = '#ffffff';
-            }
-            if (el.style.borderColor && el.style.borderColor.includes('oklch')) {
-              el.style.borderColor = '#e5e5e5';
-            }
           }
         });
       },
@@ -80,11 +57,9 @@ export async function exportElementToPdf(
     let heightLeft = imgHeight;
     let position = 0;
 
-    // Add first page
     pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
     heightLeft -= pdfHeight;
 
-    // Handle multiple pages if content extends beyond one A4 page
     while (heightLeft > 0) {
       position = heightLeft - imgHeight;
       pdf.addPage();
@@ -93,28 +68,8 @@ export async function exportElementToPdf(
     }
 
     const blob = pdf.output('blob');
-    const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
-
-    // If mobile supports Web Share API with file, try native share/save sheet
-    if (isMobile && 'canShare' in navigator) {
-      try {
-        const file = new File([blob], fileName, { type: 'application/pdf' });
-        if ((navigator as any).canShare({ files: [file] })) {
-          await (navigator as any).share({
-            title: 'Age Certificate PDF',
-            text: 'বয়স ক্যালকুলেটর সনদ',
-            files: [file],
-          });
-          return true;
-        }
-      } catch (shareErr) {
-        // User cancelled or share failed, fallback to standard download below
-        console.warn('Native share dismissed, falling back to blob download:', shareErr);
-      }
-    }
-
-    // Standard download via blob url
     const blobUrl = URL.createObjectURL(blob);
+
     const link = document.createElement('a');
     link.href = blobUrl;
     link.download = fileName;
@@ -123,21 +78,129 @@ export async function exportElementToPdf(
     document.body.appendChild(link);
     link.click();
 
-    // Fallback for mobile browsers where a.click() may be suppressed
-    if (isMobile) {
-      setTimeout(() => {
-        window.open(blobUrl, '_blank');
-      }, 300);
-    }
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+    }, 1000);
+
+    return { success: true, blobUrl };
+  } catch (err: any) {
+    console.error('Error generating PDF:', err);
+    return { success: false, error: err?.message || 'Generation failed' };
+  }
+}
+
+export async function exportElementToImage(
+  elementId: string,
+  fileName: string = 'Age_Certificate.png'
+): Promise<{ success: boolean; blobUrl?: string }> {
+  const element = document.getElementById(elementId);
+  if (!element) return { success: false };
+
+  try {
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      onclone: (clonedDoc, clonedElement) => {
+        const container = clonedDoc.getElementById('printable-container');
+        if (container) {
+          container.style.position = 'static';
+          container.style.zIndex = '9999';
+          container.style.opacity = '1';
+          container.style.display = 'block';
+        }
+        if (clonedElement) {
+          clonedElement.style.display = 'block';
+          clonedElement.style.opacity = '1';
+        }
+        const styleElements = clonedDoc.querySelectorAll('style');
+        styleElements.forEach((style) => {
+          if (style.textContent && (style.textContent.includes('oklch') || style.textContent.includes('color-mix'))) {
+            style.textContent = style.textContent
+              .replace(/oklch\([^)]+\)/g, '#262626')
+              .replace(/color-mix\([^)]+\)/g, '#f5f5f5');
+          }
+        });
+      },
+    });
+
+    const dataUrl = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
 
     setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-    }, 60000);
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+    }, 1000);
 
-    return true;
+    return { success: true, blobUrl: dataUrl };
   } catch (err) {
-    console.error('Error generating PDF:', err);
-    return false;
+    console.error('Image export error:', err);
+    return { success: false };
   }
+}
+
+export function printElementViaIframe(elementId: string) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow?.document;
+  if (!doc) return;
+
+  doc.open();
+  doc.write(`
+    <!DOCTYPE html>
+    <html lang="bn">
+      <head>
+        <title>বয়স ক্যালকুলেটর সনদ</title>
+        <meta charset="utf-8" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>
+          @page { size: A4 portrait; margin: 8mm; }
+          * { box-sizing: border-box; }
+          body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Hind Siliguri', -apple-system, sans-serif;
+            background: #ffffff;
+            color: #171717;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        </style>
+      </head>
+      <body>
+        ${el.outerHTML}
+      </body>
+    </html>
+  `);
+  doc.close();
+
+  iframe.contentWindow?.focus();
+  setTimeout(() => {
+    iframe.contentWindow?.print();
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    }, 4000);
+  }, 400);
 }

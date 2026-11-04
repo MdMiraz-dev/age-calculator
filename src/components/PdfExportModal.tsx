@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, FileText, CheckCircle2, ShieldCheck, User, Calendar, Gift, Hourglass, Award, MapPin, Navigation, Loader2, Printer, AlertCircle } from 'lucide-react';
+import { Download, X, FileText, CheckCircle2, ShieldCheck, User, Calendar, Gift, Hourglass, Award, MapPin, Navigation, Loader2, Printer, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { CalculationResult, Language, UserProfile } from '../types';
 import { toBnNum, formatNum } from '../utils/ageCalculator';
 import { formatFullDate } from '../utils/dateFormatter';
-import { exportElementToPdf } from '../utils/pdfGenerator';
+import { exportElementToPdf, exportElementToImage, printElementViaIframe } from '../utils/pdfGenerator';
 
 interface PdfExportModalProps {
   isOpen: boolean;
@@ -30,11 +30,14 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   const [pdfLocation, setPdfLocation] = useState(location || activeProfile?.location || 'ঢাকা, বাংলাদেশ');
   const [isDetectingGps, setIsDetectingGps] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [imageSuccess, setImageSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [downloadLink, setDownloadLink] = useState<{ url: string; name: string } | null>(null);
 
   const handlePrint = () => {
-    window.print();
+    printElementViaIframe('printable-age-certificate');
   };
 
   useEffect(() => {
@@ -91,27 +94,55 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
     setIsGenerating(true);
     setSuccess(false);
     setErrorMsg(null);
+    setDownloadLink(null);
 
     // Allow DOM to settle before snapshot
-    await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 150));
 
     const cleanName = userName.trim() ? userName.trim().replace(/\s+/g, '_') : 'My';
     const fileName = `${cleanName}_Age_Certificate_Report.pdf`;
 
-    const ok = await exportElementToPdf('printable-age-certificate', fileName);
+    const res = await exportElementToPdf('printable-age-certificate', fileName);
     setIsGenerating(false);
 
-    if (ok) {
+    if (res.success) {
       setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-        onClose();
-      }, 2500);
+      if (res.blobUrl) {
+        setDownloadLink({ url: res.blobUrl, name: fileName });
+      }
     } else {
       setErrorMsg(
         lang === 'bn'
-          ? 'ফাইল সরাসরি সেভ করা যায়নি। পাশে থাকা "প্রিন্ট / সেভ" বাটনে চাপ দিয়ে PDF হিসেবে সেভ করুন।'
-          : 'Could not auto-download. Please click "Print / Save" to save as PDF.'
+          ? 'স্বয়ংক্রিয় ডাউনলোডে সমস্যা হলে পাশে থাকা "প্রিন্ট / সেভ" বা "ছবি (PNG)" অপশনটি ব্যবহার করুন।'
+          : 'Could not auto-download. Please click "Print / Save" or "Image (PNG)".'
+      );
+    }
+  };
+
+  const handleDownloadImage = async () => {
+    setIsGeneratingImage(true);
+    setImageSuccess(false);
+    setErrorMsg(null);
+    setDownloadLink(null);
+
+    await new Promise((r) => setTimeout(r, 150));
+
+    const cleanName = userName.trim() ? userName.trim().replace(/\s+/g, '_') : 'My';
+    const fileName = `${cleanName}_Age_Certificate.png`;
+
+    const res = await exportElementToImage('printable-age-certificate', fileName);
+    setIsGeneratingImage(false);
+
+    if (res.success) {
+      setImageSuccess(true);
+      if (res.blobUrl) {
+        setDownloadLink({ url: res.blobUrl, name: fileName });
+      }
+    } else {
+      setErrorMsg(
+        lang === 'bn'
+          ? 'ছবি তৈরিতে সমস্যা হলে "প্রিন্ট / সেভ" বাটনটি চাপুন।'
+          : 'Image save failed. Please use Print / Save.'
       );
     }
   };
@@ -225,6 +256,22 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
           </div>
         )}
 
+        {/* Direct manual download link if popup was blocked */}
+        {downloadLink && (
+          <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-200 flex items-center justify-between gap-2">
+            <span>{lang === 'bn' ? 'ফাইল তৈরি হয়েছে!' : 'File Ready!'}</span>
+            <a
+              href={downloadLink.url}
+              download={downloadLink.name}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold underline text-emerald-700 dark:text-emerald-300 hover:text-emerald-900"
+            >
+              {lang === 'bn' ? 'সরাসরি ফাইলটি সেভ করতে এখানে ক্লিক করুন ⬇' : 'Click here to save file ⬇'}
+            </a>
+          </div>
+        )}
+
         {/* Download Action Buttons */}
         <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
           <button
@@ -235,20 +282,40 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             {lang === 'bn' ? 'বাতিল' : 'Cancel'}
           </button>
 
+          {/* Native Print / Save */}
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700 rounded-xl text-xs font-bold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700 rounded-xl text-xs font-bold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all shadow-xs"
             title={lang === 'bn' ? 'সরাসরি ব্রাউজার/ফোনের প্রিন্ট থেকে PDF সেভ করুন' : 'Print or Save as PDF via native print'}
           >
             <Printer className="w-4 h-4 text-neutral-600 dark:text-neutral-300" />
             <span>{lang === 'bn' ? 'প্রিন্ট / সেভ' : 'Print / Save'}</span>
           </button>
 
+          {/* PNG Image Download */}
+          <button
+            type="button"
+            onClick={handleDownloadImage}
+            disabled={isGeneratingImage || isGenerating}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700 rounded-xl text-xs font-bold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all shadow-xs disabled:opacity-50"
+            title={lang === 'bn' ? 'গ্যালারিতে সরাসরি ছবি হিসেবে সেভ করুন' : 'Save as PNG image to gallery'}
+          >
+            {isGeneratingImage ? (
+              <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : imageSuccess ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            ) : (
+              <ImageIcon className="w-4 h-4 text-neutral-600 dark:text-neutral-300" />
+            )}
+            <span>{lang === 'bn' ? 'ছবি (PNG)' : 'Image (PNG)'}</span>
+          </button>
+
+          {/* PDF Download */}
           <button
             type="button"
             onClick={handleDownloadPdf}
-            disabled={isGenerating}
+            disabled={isGenerating || isGeneratingImage}
             className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl text-xs font-bold hover:bg-neutral-800 dark:hover:bg-neutral-100 shadow-sm transition-all disabled:opacity-50"
           >
             {isGenerating ? (
@@ -264,7 +331,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                <span>{lang === 'bn' ? 'পিডিএফ ফাইল ডাউনলোড' : 'Download PDF File'}</span>
+                <span>{lang === 'bn' ? 'পিডিএফ ডাউনলোড' : 'Download PDF'}</span>
               </>
             )}
           </button>
@@ -279,15 +346,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
           top: 0,
           left: 0,
           width: '794px',
-          zIndex: -100,
-          opacity: 0,
+          zIndex: -9999,
+          opacity: 1,
           pointerEvents: 'none',
         }}
       >
         <div
           id="printable-age-certificate"
           className="w-[794px] min-h-[1123px] bg-white text-neutral-900 p-10 font-sans border-[12px] border-neutral-900 relative"
-          style={{ boxSizing: 'border-box' }}
+          style={{ boxSizing: 'border-box', backgroundColor: '#ffffff', color: '#171717', borderColor: '#171717' }}
         >
           {/* Inner ornamental border */}
           <div className="border border-neutral-400 p-8 h-full flex flex-col justify-between">
