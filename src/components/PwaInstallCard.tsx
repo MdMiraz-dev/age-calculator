@@ -58,7 +58,7 @@ export const PwaInstallCard: React.FC<PwaInstallCardProps> = ({ lang }) => {
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
             <img
-              src="/pwa-192x192.png"
+              src="./pwa-192x192.png"
               alt="Age Calculator Icon"
               className="w-11 h-11 rounded-2xl object-cover shrink-0 shadow-md shadow-indigo-500/30 border border-white/20"
             />
@@ -95,7 +95,7 @@ export const PwaInstallCard: React.FC<PwaInstallCardProps> = ({ lang }) => {
           <div className="bg-white dark:bg-neutral-900 rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border border-neutral-200 dark:border-neutral-800 space-y-4">
             <div className="text-center">
               <img
-                src="/pwa-192x192.png"
+                src="./pwa-192x192.png"
                 alt="App Icon"
                 className="w-14 h-14 rounded-2xl object-cover mx-auto mb-2.5 shadow-lg shadow-indigo-500/20 border-2 border-indigo-500/40"
               />
@@ -104,8 +104,8 @@ export const PwaInstallCard: React.FC<PwaInstallCardProps> = ({ lang }) => {
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                 {lang === 'bn'
-                  ? 'আপনার মোবাইল ব্রাউজার থেকে নিচের ৩টি ধাপ অনুসরণ করুন:'
-                  : 'Follow these quick steps in your browser:'}
+                  ? 'নিচের লেখাগুলো কোনো ক্লিক বাটন নয়। আপনার ব্রাউজারের মেনু থেকে এই ৩টি ধাপ অনুসরণ করুন:'
+                  : 'Follow these quick steps in your browser menu:'}
               </p>
             </div>
 

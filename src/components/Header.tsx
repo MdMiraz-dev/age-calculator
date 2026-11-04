@@ -26,7 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-2xl mx-auto px-3.5 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <img
-            src="/pwa-192x192.png"
+            src="./pwa-192x192.png"
             alt="Age Calculator"
             className="w-9 h-9 rounded-xl object-cover shadow-xs border border-neutral-200 dark:border-neutral-700 shrink-0"
           />
