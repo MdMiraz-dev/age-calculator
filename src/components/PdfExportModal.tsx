@@ -84,6 +84,14 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   });
 
   const handlePrint = async () => {
+    if (!userName.trim()) {
+      setErrorMsg(
+        lang === 'bn'
+          ? 'দয়া করে প্রার্থীর পূর্ণ নাম লিখুন (বাধ্যতামূলক)।'
+          : 'Please enter the candidate full name (Required).'
+      );
+      return;
+    }
     try {
       const data = getCertificateData();
       await printCertificateDirectly(data);
@@ -93,6 +101,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   };
 
   const handleDownloadPdf = async () => {
+    if (!userName.trim()) {
+      setErrorMsg(
+        lang === 'bn'
+          ? 'দয়া করে প্রার্থীর পূর্ণ নাম লিখুন (বাধ্যতামূলক)।'
+          : 'Please enter the candidate full name (Required).'
+      );
+      return;
+    }
+
     setIsGenerating(true);
     setSuccess(false);
     setErrorMsg(null);
@@ -123,6 +140,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   };
 
   const handleDownloadImage = async () => {
+    if (!userName.trim()) {
+      setErrorMsg(
+        lang === 'bn'
+          ? 'দয়া করে প্রার্থীর পূর্ণ নাম লিখুন (বাধ্যতামূলক)।'
+          : 'Please enter the candidate full name (Required).'
+      );
+      return;
+    }
+
     setIsGeneratingImage(true);
     setImageSuccess(false);
     setErrorMsg(null);
@@ -198,15 +224,18 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-neutral-500" />
-              <span>{lang === 'bn' ? 'আপনার নাম (ঐচ্ছিক):' : 'Person Name (Optional):'}</span>
+              <User className="w-3.5 h-3.5 text-indigo-500" />
+              <span>{lang === 'bn' ? 'প্রার্থীর পূর্ণ নাম (বাধ্যতামূলক):' : 'Candidate Full Name (Required):'}</span>
             </label>
             <input
               type="text"
               value={userName}
-              onChange={(e) => setUserName(e.target.value)}
+              onChange={(e) => {
+                setUserName(e.target.value);
+                if (errorMsg) setErrorMsg(null);
+              }}
               placeholder={lang === 'bn' ? 'যেমন: মোঃ তুশান' : 'e.g. John Doe'}
-              className="w-full text-xs p-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-neutral-400 transition-all"
+              className="w-full text-xs p-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-neutral-400 transition-all font-medium"
             />
           </div>
 

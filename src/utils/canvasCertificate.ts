@@ -55,8 +55,9 @@ export async function generateCertificateCanvas(data: CertificateData): Promise<
     lang,
   } = data;
 
+  // A4 dimensions @ 150 DPI: 1240 x 1754 (Aspect ratio: 1 : 1.414)
   const width = 1240;
-  const height = 1754; // A4 @ 150 DPI
+  const height = 1754;
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -69,67 +70,67 @@ export async function generateCertificateCanvas(data: CertificateData): Promise<
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Formal Border
+  // 2. Formal Border Frame
   // Outer border
   ctx.strokeStyle = '#0f172a';
   ctx.lineWidth = 14;
-  ctx.strokeRect(20, 20, width - 40, height - 40);
+  ctx.strokeRect(22, 22, width - 44, height - 44);
 
   // Inner decorative border
-  ctx.strokeStyle = '#cbd5e1';
+  ctx.strokeStyle = '#94a3b8';
   ctx.lineWidth = 2;
-  ctx.strokeRect(34, 34, width - 68, height - 68);
+  ctx.strokeRect(36, 36, width - 72, height - 72);
 
   // Corner Accents
   ctx.fillStyle = '#0f172a';
   const cornerSize = 24;
-  ctx.fillRect(20, 20, cornerSize, cornerSize);
-  ctx.fillRect(width - 20 - cornerSize, 20, cornerSize, cornerSize);
-  ctx.fillRect(20, height - 20 - cornerSize, cornerSize, cornerSize);
-  ctx.fillRect(width - 20 - cornerSize, height - 20 - cornerSize, cornerSize, cornerSize);
+  ctx.fillRect(22, 22, cornerSize, cornerSize);
+  ctx.fillRect(width - 22 - cornerSize, 22, cornerSize, cornerSize);
+  ctx.fillRect(22, height - 22 - cornerSize, cornerSize, cornerSize);
+  ctx.fillRect(width - 22 - cornerSize, height - 22 - cornerSize, cornerSize, cornerSize);
 
-  let curY = 60;
+  let curY = 64;
 
   // 3. Top Header
   // Top Badge
   ctx.fillStyle = '#f1f5f9';
-  roundRect(ctx, width / 2 - 160, curY, 320, 32, 16);
+  roundRect(ctx, width / 2 - 180, curY, 360, 36, 18);
   ctx.fill();
 
-  ctx.fillStyle = '#475569';
-  ctx.font = `bold 14px ${fontSans}`;
+  ctx.fillStyle = '#334155';
+  ctx.font = `bold 15px ${fontSans}`;
   ctx.textAlign = 'center';
   ctx.fillText(
-    isBn ? '🛡️ অফিসিয়াল বয়স সনদ ও রিপোর্ট' : '🛡️ OFFICIAL AGE CERTIFICATE',
+    isBn ? '🛡️ গণপ্রজাতন্ত্রী বাংলাদেশ • অফিসিয়াল বয়স সনদ' : '🛡️ OFFICIAL VERIFIED AGE CERTIFICATE',
     width / 2,
-    curY + 21
+    curY + 23
   );
 
-  curY += 50;
+  curY += 54;
 
   // Main Title
   ctx.fillStyle = '#0f172a';
-  ctx.font = `bold 38px ${fontSans}`;
+  ctx.font = `bold 44px ${fontSans}`;
   ctx.textAlign = 'center';
   ctx.fillText(
     isBn ? 'বয়স ক্যালকুলেটর সনদ' : 'Age Certificate Report',
     width / 2,
-    curY + 30
+    curY + 34
   );
 
-  curY += 46;
+  curY += 50;
 
   // Subtitle (Date)
   ctx.fillStyle = '#64748b';
-  ctx.font = `14px ${fontSans}`;
+  ctx.font = `15px ${fontSans}`;
   const nowStr = new Date().toLocaleString(isBn ? 'bn-BD' : 'en-US');
   ctx.fillText(
-    isBn ? `সনদ প্রস্তুতের তারিখ: ${nowStr}` : `Generated on: ${nowStr}`,
+    isBn ? `সনদ প্রস্তুতের তারিখ ও সময়: ${nowStr}` : `Certificate Issue Date: ${nowStr}`,
     width / 2,
     curY + 16
   );
 
-  curY += 30;
+  curY += 32;
 
   // Header Divider
   ctx.strokeStyle = '#0f172a';
@@ -139,23 +140,23 @@ export async function generateCertificateCanvas(data: CertificateData): Promise<
   ctx.lineTo(width - 60, curY);
   ctx.stroke();
 
-  curY += 24;
+  curY += 28;
 
   // 4. Candidate Info Card with Passport Photo
   const cardX = 60;
   const cardW = width - 120;
-  const cardH = 150;
+  const cardH = 170;
 
   ctx.fillStyle = '#f8fafc';
   roundRect(ctx, cardX, curY, cardW, cardH, 16);
   ctx.fill();
-  ctx.strokeStyle = '#e2e8f0';
+  ctx.strokeStyle = '#cbd5e1';
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // Photo box
-  const photoW = 100;
-  const photoH = 120;
+  // Photo box (Passport ratio 4:5)
+  const photoW = 115;
+  const photoH = 140;
   const photoX = cardX + 16;
   const photoY = curY + 15;
 
@@ -171,7 +172,7 @@ export async function generateCertificateCanvas(data: CertificateData): Promise<
     ctx.drawImage(loadedPhoto, photoX, photoY, photoW, photoH);
     ctx.restore();
     ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     roundRect(ctx, photoX, photoY, photoW, photoH, 8);
     ctx.stroke();
   } else {
@@ -183,71 +184,85 @@ export async function generateCertificateCanvas(data: CertificateData): Promise<
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    ctx.fillStyle = '#64748b';
-    ctx.font = `bold 13px ${fontSans}`;
+    ctx.fillStyle = '#475569';
+    ctx.font = `bold 14px ${fontSans}`;
     ctx.textAlign = 'center';
     ctx.fillText(isBn ? 'ছবি' : 'Photo', photoX + photoW / 2, photoY + photoH / 2 - 4);
-    ctx.font = `11px ${fontSans}`;
-    ctx.fillText(isBn ? 'সংযুক্ত' : 'Box', photoX + photoW / 2, photoY + photoH / 2 + 14);
+    ctx.font = `12px ${fontSans}`;
+    ctx.fillText(isBn ? 'সংযুক্ত' : 'Box', photoX + photoW / 2, photoY + photoH / 2 + 16);
   }
 
   // Name & details next to photo
-  const infoX = photoX + photoW + 24;
+  const infoX = photoX + photoW + 28;
   ctx.textAlign = 'left';
 
   ctx.fillStyle = '#64748b';
-  ctx.font = `bold 12px ${fontSans}`;
-  ctx.fillText(isBn ? 'নাম / ব্যবহারকারী (NAME)' : 'CANDIDATE NAME', infoX, curY + 38);
+  ctx.font = `bold 13px ${fontSans}`;
+  ctx.fillText(isBn ? 'প্রার্থীর নাম (CANDIDATE NAME)' : 'CANDIDATE FULL NAME', infoX, curY + 40);
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = `bold 26px ${fontSans}`;
-  const displayName = userName.trim() || (isBn ? 'হিসাবকারী' : 'User');
-  ctx.fillText(displayName, infoX, curY + 70);
+  ctx.font = `bold 32px ${fontSans}`;
+  const displayName = userName.trim() || activeProfile?.name || (isBn ? 'নাম প্রদান করা হয়নি' : 'Not Provided');
+  ctx.fillText(displayName, infoX, curY + 76);
 
   // Location pill
   ctx.fillStyle = '#fff1f2';
-  roundRect(ctx, infoX, curY + 86, 260, 32, 8);
+  roundRect(ctx, infoX, curY + 98, 360, 36, 8);
   ctx.fill();
   ctx.strokeStyle = '#fecdd3';
   ctx.lineWidth = 1;
   ctx.stroke();
 
   ctx.fillStyle = '#e11d48';
-  ctx.font = `bold 13px ${fontSans}`;
-  const locText = `📍 ${isBn ? 'স্থান: ' : 'Location: '} ${pdfLocation || 'ঢাকা, বাংলাদেশ'}`;
-  ctx.fillText(locText.length > 30 ? locText.substring(0, 28) + '...' : locText, infoX + 10, curY + 107);
+  ctx.font = `bold 14px ${fontSans}`;
+  const locText = `📍 ${isBn ? 'স্থান / ঠিকানা: ' : 'Location: '} ${pdfLocation || 'ঢাকা, বাংলাদেশ'}`;
+  ctx.fillText(locText.length > 40 ? locText.substring(0, 38) + '...' : locText, infoX + 12, curY + 122);
 
   // Right side: Born on Day
   const rightX = cardX + cardW - 24;
   ctx.textAlign = 'right';
   ctx.fillStyle = '#64748b';
-  ctx.font = `bold 12px ${fontSans}`;
+  ctx.font = `bold 13px ${fontSans}`;
   ctx.fillText(isBn ? 'জন্মবার (BORN ON)' : 'DAY OF BIRTH', rightX, curY + 45);
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = `bold 22px ${fontSans}`;
-  ctx.fillText(isBn ? result.dayOfWeekBornBn : result.dayOfWeekBornEn, rightX, curY + 78);
+  ctx.font = `bold 26px ${fontSans}`;
+  ctx.fillText(isBn ? result.dayOfWeekBornBn : result.dayOfWeekBornEn, rightX, curY + 84);
 
-  curY += cardH + 18;
+  curY += cardH + 22;
 
-  // 5. 4-Column Grid: Birth, Calc Date, Location, Tracking ID
-  const colW = (cardW - 36) / 4;
-  const colH = 68;
-  const items = [
-    { label: isBn ? 'জন্ম তারিখ:' : 'Birth Date:', val: formattedBirth },
-    { label: isBn ? 'হিসাবের তারিখ:' : 'Calc Date:', val: formattedTarget },
-    { label: isBn ? 'স্থান / জেলা:' : 'Location:', val: pdfLocation || 'ঢাকা, বাংলাদেশ' },
+  // 5. 2x2 Grid for Dates & ID (Ample space so dates never get truncated)
+  const gridW = (cardW - 16) / 2;
+  const gridH = 68;
+
+  const dateItems = [
     {
-      label: isBn ? 'সনদ ট্র্যাকিং নং:' : 'Certificate ID:',
+      label: isBn ? 'জন্ম তারিখ (Date of Birth):' : 'Date of Birth:',
+      val: formattedBirth,
+    },
+    {
+      label: isBn ? 'হিসাবের তারিখ (Calculation Date):' : 'Calculation Date:',
+      val: formattedTarget,
+    },
+    {
+      label: isBn ? 'রিপোর্ট প্রদানের স্থান (Location):' : 'Location / District:',
+      val: pdfLocation || (isBn ? 'ঢাকা, বাংলাদেশ' : 'Dhaka, Bangladesh'),
+    },
+    {
+      label: isBn ? 'সনদ ট্র্যাকিং নম্বর (Certificate ID):' : 'Certificate ID:',
       val: `BD-AGE-${Math.abs((result.totalSeconds % 899999) + 100000)}`,
       color: '#4338ca',
     },
   ];
 
-  items.forEach((item, idx) => {
-    const itemX = cardX + idx * (colW + 12);
+  dateItems.forEach((item, idx) => {
+    const col = idx % 2;
+    const row = Math.floor(idx / 2);
+    const itemX = cardX + col * (gridW + 16);
+    const itemY = curY + row * (gridH + 12);
+
     ctx.fillStyle = '#f8fafc';
-    roundRect(ctx, itemX, curY, colW, colH, 10);
+    roundRect(ctx, itemX, itemY, gridW, gridH, 10);
     ctx.fill();
     ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 1;
@@ -255,35 +270,34 @@ export async function generateCertificateCanvas(data: CertificateData): Promise<
 
     ctx.textAlign = 'left';
     ctx.fillStyle = '#64748b';
-    ctx.font = `11px ${fontSans}`;
-    ctx.fillText(item.label, itemX + 12, curY + 24);
+    ctx.font = `12px ${fontSans}`;
+    ctx.fillText(item.label, itemX + 16, itemY + 24);
 
     ctx.fillStyle = item.color || '#0f172a';
-    ctx.font = `bold 13px ${fontSans}`;
-    const txt = item.val.length > 22 ? item.val.substring(0, 20) + '...' : item.val;
-    ctx.fillText(txt, itemX + 12, curY + 48);
+    ctx.font = `bold 16px ${fontSans}`;
+    ctx.fillText(item.val, itemX + 16, itemY + 50);
   });
 
-  curY += colH + 20;
+  curY += gridH * 2 + 30;
 
   // 6. Large Hero Box: Exact Age (Years, Months, Days)
-  const heroH = 175;
+  const heroH = 200;
   ctx.fillStyle = '#0f172a';
   roundRect(ctx, cardX, curY, cardW, heroH, 18);
   ctx.fill();
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = `bold 13px ${fontSans}`;
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = `bold 15px ${fontSans}`;
   ctx.fillText(
-    isBn ? 'নির্ধারিত তারিখে সঠিক বয়স (EXACT AGE ON DATE)' : 'EXACT AGE ON CALCULATION DATE',
+    isBn ? '★ নির্ধারিত তারিখে প্রার্থীর সঠিক বয়স (EXACT AGE ON DATE) ★' : '★ EXACT AGE ON CALCULATION DATE ★',
     width / 2,
-    curY + 28
+    curY + 32
   );
 
   const heroCardW = (cardW - 48) / 3;
-  const heroCardH = 105;
-  const heroCardY = curY + 44;
+  const heroCardH = 125;
+  const heroCardY = curY + 50;
 
   const ageData = [
     { num: isBn ? toBnNum(result.years) : result.years.toString(), unit: isBn ? 'বছর (Years)' : 'Years' },
@@ -294,66 +308,66 @@ export async function generateCertificateCanvas(data: CertificateData): Promise<
   ageData.forEach((ad, i) => {
     const boxX = cardX + 16 + i * (heroCardW + 8);
     ctx.fillStyle = '#1e293b';
-    roundRect(ctx, boxX, heroCardY, heroCardW, heroCardH, 12);
+    roundRect(ctx, boxX, heroCardY, heroCardW, heroCardH, 14);
     ctx.fill();
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = `bold 52px ${fontSans}`;
+    ctx.font = `bold 64px ${fontSans}`;
     ctx.textAlign = 'center';
-    ctx.fillText(ad.num, boxX + heroCardW / 2, heroCardY + 60);
+    ctx.fillText(ad.num, boxX + heroCardW / 2, heroCardY + 74);
 
     ctx.fillStyle = '#94a3b8';
-    ctx.font = `13px ${fontSans}`;
-    ctx.fillText(ad.unit, boxX + heroCardW / 2, heroCardY + 88);
+    ctx.font = `bold 16px ${fontSans}`;
+    ctx.fillText(ad.unit, boxX + heroCardW / 2, heroCardY + 108);
   });
 
-  curY += heroH + 16;
+  curY += heroH + 22;
 
   // 7. Next Birthday Card
-  const bdayH = 60;
+  const bdayH = 70;
   ctx.fillStyle = '#fffbeb';
   roundRect(ctx, cardX, curY, cardW, bdayH, 12);
   ctx.fill();
   ctx.strokeStyle = '#fde68a';
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#78350f';
-  ctx.font = `bold 14px ${fontSans}`;
-  ctx.fillText(isBn ? '🎂 পরবর্তী জন্মদিন (Next Birthday):' : '🎂 Next Birthday:', cardX + 16, curY + 25);
+  ctx.font = `bold 16px ${fontSans}`;
+  ctx.fillText(isBn ? '🎂 পরবর্তী জন্মদিন (Next Birthday):' : '🎂 Next Birthday:', cardX + 20, curY + 28);
   ctx.fillStyle = '#92400e';
-  ctx.font = `13px ${fontSans}`;
-  ctx.fillText(formattedNextBday, cardX + 16, curY + 46);
+  ctx.font = `15px ${fontSans}`;
+  ctx.fillText(formattedNextBday, cardX + 20, curY + 54);
 
   // Badge
   ctx.fillStyle = '#fef3c7';
-  roundRect(ctx, cardX + cardW - 200, curY + 12, 184, 36, 8);
+  roundRect(ctx, cardX + cardW - 240, curY + 14, 220, 42, 10);
   ctx.fill();
   ctx.strokeStyle = '#f59e0b';
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#78350f';
-  ctx.font = `bold 13px ${fontSans}`;
+  ctx.font = `bold 15px ${fontSans}`;
   const daysLeftStr = isBn
-    ? `আর ${toBnNum(result.nextBirthday.daysRemaining)} দিন বাকি`
-    : `${result.nextBirthday.daysRemaining} days left`;
-  ctx.fillText(daysLeftStr, cardX + cardW - 108, curY + 35);
+    ? `আর মাত্র ${toBnNum(result.nextBirthday.daysRemaining)} দিন বাকি`
+    : `${result.nextBirthday.daysRemaining} days remaining`;
+  ctx.fillText(daysLeftStr, cardX + cardW - 130, curY + 41);
 
-  curY += bdayH + 20;
+  curY += bdayH + 26;
 
-  // 8. Lifetime Units Grid (3 x 2)
+  // 8. Lifetime Units Grid (3 Columns x 2 Rows)
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#64748b';
-  ctx.font = `bold 12px ${fontSans}`;
-  ctx.fillText(isBn ? 'জীবনের মোট পরিসংখ্যান (LIFETIME UNITS)' : 'LIFETIME UNITS STATISTICS', cardX, curY);
+  ctx.fillStyle = '#0f172a';
+  ctx.font = `bold 14px ${fontSans}`;
+  ctx.fillText(isBn ? '📊 জীবনের মোট পরিসংখ্যান (LIFETIME UNITS):' : '📊 LIFETIME UNITS STATISTICS:', cardX, curY);
 
-  curY += 12;
+  curY += 14;
 
   const unitColW = (cardW - 24) / 3;
-  const unitColH = 58;
+  const unitColH = 70;
 
   const unitStats = [
     { label: isBn ? 'মোট মাস:' : 'Total Months:', val: formatNum(result.totalMonths, lang) },
@@ -368,29 +382,29 @@ export async function generateCertificateCanvas(data: CertificateData): Promise<
     const col = i % 3;
     const row = Math.floor(i / 3);
     const boxX = cardX + col * (unitColW + 12);
-    const boxY = curY + row * (unitColH + 10);
+    const boxY = curY + row * (unitColH + 12);
 
     ctx.fillStyle = '#f8fafc';
-    roundRect(ctx, boxX, boxY, unitColW, unitColH, 8);
+    roundRect(ctx, boxX, boxY, unitColW, unitColH, 10);
     ctx.fill();
     ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 1;
     ctx.stroke();
 
     ctx.fillStyle = '#64748b';
-    ctx.font = `11px ${fontSans}`;
-    ctx.fillText(st.label, boxX + 12, boxY + 22);
+    ctx.font = `12px ${fontSans}`;
+    ctx.fillText(st.label, boxX + 14, boxY + 26);
 
     ctx.fillStyle = '#0f172a';
-    ctx.font = `bold 16px ${fontSans}`;
-    ctx.fillText(st.val, boxX + 12, boxY + 45);
+    ctx.font = `bold 19px ${fontSans}`;
+    ctx.fillText(st.val, boxX + 14, boxY + 54);
   });
 
-  curY += unitColH * 2 + 30;
+  curY += unitColH * 2 + 36;
 
   // 9. Zodiac & Job Eligibility (2 Columns)
   const metaW = (cardW - 16) / 2;
-  const metaH = 100;
+  const metaH = 115;
 
   // Box 1: Zodiac
   ctx.fillStyle = '#f8fafc';
@@ -401,20 +415,20 @@ export async function generateCertificateCanvas(data: CertificateData): Promise<
   ctx.stroke();
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = `bold 13px ${fontSans}`;
-  ctx.fillText(isBn ? '🔮 রাশিফল (Zodiac):' : '🔮 Zodiac Profile:', cardX + 14, curY + 26);
+  ctx.font = `bold 14px ${fontSans}`;
+  ctx.fillText(isBn ? '🔮 জ্যোতিষশাস্ত্র ও রাশিফল (Zodiac):' : '🔮 Zodiac & Astrological Profile:', cardX + 16, curY + 28);
 
-  ctx.font = `12px ${fontSans}`;
+  ctx.font = `13px ${fontSans}`;
   ctx.fillStyle = '#475569';
   const westText = isBn
     ? `পাশ্চাত্য রাশি: ${result.zodiacSign.bn} (${result.zodiacSign.symbol})`
     : `Western Zodiac: ${result.zodiacSign.en} (${result.zodiacSign.symbol})`;
-  ctx.fillText(westText, cardX + 14, curY + 54);
+  ctx.fillText(westText, cardX + 16, curY + 60);
 
   const chinText = isBn
     ? `চাইনিজ রাশি: ${result.chineseZodiac.bn} (${result.chineseZodiac.symbol})`
     : `Chinese Zodiac: ${result.chineseZodiac.en} (${result.chineseZodiac.symbol})`;
-  ctx.fillText(chinText, cardX + 14, curY + 80);
+  ctx.fillText(chinText, cardX + 16, curY + 90);
 
   // Box 2: Job eligibility
   const jobX = cardX + metaW + 16;
@@ -426,79 +440,83 @@ export async function generateCertificateCanvas(data: CertificateData): Promise<
   ctx.stroke();
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = `bold 13px ${fontSans}`;
-  ctx.fillText(isBn ? '💼 সরকারি চাকরির বয়স সীমা:' : '💼 Job Age Eligibility:', jobX + 14, curY + 26);
+  ctx.font = `bold 14px ${fontSans}`;
+  ctx.fillText(isBn ? '💼 সরকারি চাকরির বয়স সীমা যোগ্যতা:' : '💼 Job Age Limit Eligibility:', jobX + 16, curY + 28);
 
-  ctx.font = `12px ${fontSans}`;
+  ctx.font = `13px ${fontSans}`;
   ctx.fillStyle = '#475569';
-  ctx.fillText(isBn ? '৩০ বছর সীমা (সাধারণ):' : '30 Years Limit (General):', jobX + 14, curY + 54);
+  ctx.fillText(isBn ? '৩০ বছর বয়স সীমা (সাধারণ):' : '30 Years Limit (General):', jobX + 16, curY + 60);
   const eligible30 = result.years < 30;
   ctx.fillStyle = eligible30 ? '#047857' : '#be123c';
-  ctx.font = `bold 12px ${fontSans}`;
+  ctx.font = `bold 13px ${fontSans}`;
   ctx.fillText(
     eligible30 ? (isBn ? 'যোগ্য (Eligible)' : 'Eligible') : (isBn ? 'অতিক্রম করেছে (Exceeded)' : 'Exceeded'),
-    jobX + 190,
-    curY + 54
+    jobX + 220,
+    curY + 60
   );
 
-  ctx.font = `12px ${fontSans}`;
+  ctx.font = `13px ${fontSans}`;
   ctx.fillStyle = '#475569';
-  ctx.fillText(isBn ? '৩২ বছর সীমা (কোটা):' : '32 Years Limit (Quota):', jobX + 14, curY + 80);
+  ctx.fillText(isBn ? '৩২ বছর বয়স সীমা (কোটা):' : '32 Years Limit (Quota):', jobX + 16, curY + 90);
   const eligible32 = result.years < 32;
   ctx.fillStyle = eligible32 ? '#047857' : '#be123c';
-  ctx.font = `bold 12px ${fontSans}`;
+  ctx.font = `bold 13px ${fontSans}`;
   ctx.fillText(
     eligible32 ? (isBn ? 'যোগ্য (Eligible)' : 'Eligible') : (isBn ? 'অতিক্রম করেছে (Exceeded)' : 'Exceeded'),
-    jobX + 190,
-    curY + 80
+    jobX + 220,
+    curY + 90
   );
 
-  curY += metaH + 28;
+  curY += metaH + 34;
 
-  // 10. Footer Divider & Stamp
+  // 10. Footer Divider & Official Certification Stamp
   ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.moveTo(cardX, curY);
   ctx.lineTo(cardX + cardW, curY);
   ctx.stroke();
 
-  curY += 24;
+  curY += 28;
 
   // Footer Left: Verification Seal
   ctx.textAlign = 'left';
   ctx.fillStyle = '#047857';
-  ctx.font = `bold 13px ${fontSans}`;
+  ctx.font = `bold 15px ${fontSans}`;
   ctx.fillText(
-    isBn ? '✔ স্বয়ংক্রিয়ভাবে নির্ভুল গণনাকৃত ও সত্যায়িত' : '✔ SYSTEM VERIFIED & ACCURATELY COMPUTED',
+    isBn ? '✔ স্বয়ংক্রিয়ভাবে নির্ভুল গণনাকৃত ও সত্যায়িত' : '✔ SYSTEM COMPUTED & VERIFIED ACCURATE',
     cardX,
-    curY + 14
+    curY + 16
   );
 
   ctx.fillStyle = '#64748b';
-  ctx.font = `11px ${fontSans}`;
+  ctx.font = `13px ${fontSans}`;
   ctx.fillText(
-    isBn ? `যাচাইকৃত অবস্থান: ${pdfLocation || 'ঢাকা, বাংলাদেশ'} • অফিসিয়াল ব্যবহারের উপযোগী` : `Location: ${pdfLocation || 'Dhaka, Bangladesh'} • Official Document`,
+    isBn
+      ? `যাচাইকৃত অবস্থান: ${pdfLocation || 'ঢাকা, বাংলাদেশ'} • সরকারি ও পেশাদার ব্যবহারের উপযোগী`
+      : `Verified Location: ${pdfLocation || 'Dhaka, Bangladesh'} • Official Document`,
     cardX,
-    curY + 34
+    curY + 42
   );
 
   // Footer Right: MIRAZ Creator Seal
+  const stampW = 300;
+  const stampH = 64;
   ctx.fillStyle = '#f8fafc';
-  roundRect(ctx, cardX + cardW - 270, curY - 6, 270, 52, 10);
+  roundRect(ctx, cardX + cardW - stampW, curY - 10, stampW, stampH, 12);
   ctx.fill();
   ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 2;
   ctx.stroke();
 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#0f172a';
-  ctx.font = `bold 12px ${fontSans}`;
-  ctx.fillText(isBn ? 'নির্মাতা ও ডেভেলপার: MIRAZ' : 'Software Creator: MIRAZ', cardX + cardW - 255, curY + 16);
+  ctx.font = `bold 14px ${fontSans}`;
+  ctx.fillText(isBn ? 'নির্মাতা ও ডেভেলপার: MIRAZ' : 'Software Creator: MIRAZ', cardX + cardW - stampW + 16, curY + 16);
 
   ctx.fillStyle = '#4338ca';
-  ctx.font = `10px ${fontSans}`;
-  ctx.fillText('Age Calculator Official Service • Verified', cardX + cardW - 255, curY + 36);
+  ctx.font = `11px ${fontSans}`;
+  ctx.fillText('Age Calculator Official Service • Verified', cardX + cardW - stampW + 16, curY + 38);
 
   return canvas;
 }
